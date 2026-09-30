@@ -92,7 +92,7 @@ def scan_js(root):
             if f.endswith('.js'):
                 m = re.search(JS_BANNER, read(os.path.join(dp, f), 1500))
                 if m:
-                    name = m.group(1).lower().removesuffix('.js')
+                    name = m.group(1).lower()  # keep '.js', npm names use it (plotly.js, pym.js)
                     out.setdefault((name, m.group(2)), os.path.relpath(os.path.join(dp, f), root))
     return [(n, v, rel, 'banner') for (n, v), rel in out.items()]
 
