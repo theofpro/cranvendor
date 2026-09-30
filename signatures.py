@@ -84,3 +84,7 @@ LIBS = {
 
 # "plotly.js v2.11.1", "pym.js - v1.3.1", "jQuery v3.6.0"
 JS_BANNER = r'([A-Za-z][\w.\-]*?(?:\.js)?)\s*(?:-\s*)?v(\d+\.\d+\.\d+)'
+# "jQuery JavaScript Library v1.12.4", "jQuery UI - v1.13.2"
+JQUERY = r'jQuery (JavaScript Library|UI)\s*(?:-\s*)?v(\d+\.\d+\.\d+)'
+# words the banner regex catches that aren't library names
+NOT_NAMES = {'library', 'version', 'ui', 'contents', 'release'}
