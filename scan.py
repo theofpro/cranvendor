@@ -7,7 +7,7 @@ import tarfile
 import tempfile
 import urllib.request
 
-from signatures import JS_BANNER, LIBS
+from signatures import JQUERY, JS_BANNER, LIBS, NOT_NAMES
 
 CRAN = 'https://cran.r-project.org/src/contrib'
 KEEP = ('src/', 'inst/', 'tools/', 'configure', 'NEWS')
@@ -111,11 +111,23 @@ def scan_js(root):
         for f in files:
             if not f.endswith('.js'):
                 continue
-            m = re.search(JS_BANNER, read(os.path.join(dp, f), 1500))
+            head = read(os.path.join(dp, f), 1500)
+            m = re.search(JQUERY, head)
             if m:
+                name = 'jquery' if m.group(1) == 'JavaScript Library' \
+                    else 'jquery-ui'
+                key = (name, m.group(2))
+            else:
+                m = re.search(JS_BANNER, head)
                 # keep the .js suffix, npm uses it (plotly.js, pym.js)
-                key = (m.group(1).lower(), m.group(2))
-                out.setdefault(key, os.path.relpath(os.path.join(dp, f), root))
+                if not m or m.group(1).lower() in NOT_NAMES:
+                    continue
+                name = m.group(1).lower()
+                # "Datepicker for Bootstrap v1.10.0": use the file name
+                if re.search(r'\bfor\s+' + re.escape(m.group(1)), head):
+                    name = re.sub(r'(\.min)?\.js$', '', f).lower()
+                key = (name, m.group(2))
+            out.setdefault(key, os.path.relpath(os.path.join(dp, f), root))
     return [(name, v, rel, 'banner') for (name, v), rel in out.items()]
 
 
@@ -128,6 +140,8 @@ def scan_pkg(pkg, ver, archive=False):
 
 
 def main(args):
+    if not args:
+        sys.exit('usage: scan.py PKG [PKG ...] | --top N')
     versions = current_versions()
     if args[0] == '--top':
         pkgs = top_packages(int(args[1]), versions)
@@ -137,6 +151,9 @@ def main(args):
     w.writerow(['package', 'version', 'kind', 'library', 'lib_version',
                 'path', 'version_from'])
     for p in pkgs:
+        if p not in versions:
+            print(f'{p}: not on CRAN', file=sys.stderr)
+            continue
         try:
             for row in scan_pkg(p, versions[p]):
                 w.writerow([p, versions[p]] + list(row))
